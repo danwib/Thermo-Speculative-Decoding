@@ -7,7 +7,7 @@ import numpy as np
 import pytest
 
 from tsd.psi import psi_size_bytes
-from tsd.targets.m0_categorical import craft_psi_from_p, make_p
+from tsd.targets.m0_categorical import craft_psi_from_p, make_p, make_p_zipf
 
 
 def test_make_p_reproducible_and_normalised() -> None:
@@ -52,3 +52,16 @@ def test_eps_auto_matches_tail_mass() -> None:
     expected = 0.0 if denom == 1 else tail_mass / denom
 
     assert float(psi.epsilon) == pytest.approx(expected, rel=1e-3, abs=1e-7)
+
+
+def test_make_p_zipf_properties() -> None:
+    """Zipf generator should produce a valid, sorted distribution."""
+
+    vocab_size = 512
+    alpha = 1.2
+    p_zipf, logp_zipf = make_p_zipf(vocab_size=vocab_size, alpha=alpha)
+
+    assert p_zipf.shape == (vocab_size,)
+    assert logp_zipf.shape == (vocab_size,)
+    assert np.isclose(np.sum(p_zipf), 1.0)
+    assert np.all(p_zipf[:-1] >= p_zipf[1:])

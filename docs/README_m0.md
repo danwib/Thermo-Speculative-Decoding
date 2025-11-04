@@ -32,6 +32,9 @@ python -m scripts.run_m0 run --vocab 1000 --K 64 --eps auto --steps 50000 --seed
 
 # fixed epsilon (advanced)
 python -m scripts.run_m0 run --vocab 1000 --K 64 --eps 1e-6 --steps 50000 --seed 7
+
+# Zipf target with alpha=1.2
+python -m scripts.run_m0 run --vocab 1000 --K 64 --pgen zipf --alpha 1.2 --eps auto --steps 50000 --seed 7
 ```
 
 `--eps auto` distributes the true tail mass of `p` uniformly over the out-of-set
@@ -43,6 +46,9 @@ tokens:
 
 This typically raises acceptance rates versus a tiny fixed `ε`, especially when
 the proposer already captures most of the target mass.
+
+`--pgen zipf` reshapes the synthetic target to follow a Zipf law with exponent
+`alpha`, useful for stress-testing long-tail behaviours.
 
 Output looks like:
 

@@ -9,7 +9,7 @@ import numpy as np
 
 from ..psi import PsiTopK
 
-__all__ = ["make_p", "craft_psi_from_p", "entropy"]
+__all__ = ["make_p", "make_p_zipf", "craft_psi_from_p", "entropy"]
 
 
 def make_p(vocab_size: int, seed: int) -> Tuple[np.ndarray, np.ndarray]:
@@ -163,3 +163,32 @@ def entropy(p: np.ndarray) -> float:
     probs = probs / total
     mask = probs > 0.0
     return float(-np.sum(probs[mask] * np.log(probs[mask]), dtype=np.float64))
+
+
+def make_p_zipf(vocab_size: int, alpha: float) -> Tuple[np.ndarray, np.ndarray]:
+    """Generate a Zipf-like categorical distribution.
+
+    Parameters
+    ----------
+    vocab_size:
+        Vocabulary cardinality. Must be positive.
+    alpha:
+        Zipf exponent. Must be greater than 1 for a normalisable distribution.
+
+    Returns
+    -------
+    Tuple[np.ndarray, np.ndarray]
+        ``p`` and ``log p`` arrays, both float64 with shape ``(vocab_size,)``.
+    """
+
+    if vocab_size <= 0:
+        raise ValueError("vocab_size must be positive.")
+    if alpha <= 1.0:
+        raise ValueError("alpha must be greater than 1.0 for Zipf distribution.")
+
+    ranks = np.arange(1, vocab_size + 1, dtype=np.float64)
+    weights = 1.0 / np.power(ranks, alpha, dtype=np.float64)
+    weights_sum = np.sum(weights, dtype=np.float64)
+    probs = weights / weights_sum
+    logp = np.log(probs)
+    return probs, logp

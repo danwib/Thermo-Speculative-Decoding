@@ -18,7 +18,7 @@ if str(SRC) not in sys.path:
     sys.path.insert(0, str(SRC))
 
 from tsd.psi import logq_full, psi_size_bytes
-from tsd.targets import craft_psi_from_p, make_p
+from tsd.targets import craft_psi_from_p, make_p, make_p_zipf
 from tsd.telemetry.metrics import chi2_test_counts
 from tsd.tsu_iface import SimTSU
 from tsd.verifier import accept_correct_step
@@ -48,6 +48,14 @@ def run(
     vocab: int = typer.Option(1000, "--vocab", min=1, help="Vocabulary size."),
     k: int = typer.Option(64, "--K", min=1, help="Top-K payload size."),
     tau: float = typer.Option(1.0, "--tau", help="Proposer temperature."),
+    pgen: str = typer.Option(
+        "dirichlet",
+        "--pgen",
+        help="Target generator: 'dirichlet' or 'zipf'.",
+    ),
+    alpha: float = typer.Option(
+        1.1, "--alpha", help="Zipf exponent when --pgen zipf (must be > 1)."
+    ),
     eps: Optional[str] = typer.Option(
         "auto", "--eps", help="Out-of-set floor mass ('auto' to match tail)."
     ),
@@ -62,7 +70,13 @@ def run(
     eps_val = _parse_eps(eps)
     eps_request = "auto" if isinstance(eps_val, str) else float(eps_val)
 
-    p, logp = make_p(vocab_size=vocab, seed=seed)
+    pgen_mode = pgen.strip().lower()
+    if pgen_mode == "dirichlet":
+        p, logp = make_p(vocab_size=vocab, seed=seed)
+    elif pgen_mode == "zipf":
+        p, logp = make_p_zipf(vocab_size=vocab, alpha=alpha)
+    else:
+        raise typer.BadParameter("--pgen must be either 'dirichlet' or 'zipf'.")
     psi = craft_psi_from_p(p, k=k, tau=tau, epsilon=eps_val)
     psi_bytes = psi_size_bytes(psi)
 

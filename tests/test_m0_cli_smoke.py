@@ -82,3 +82,23 @@ def test_m0_cli_smoke(tmp_path: Path) -> None:
     assert accept_auto >= accept_numeric
     assert eps_used_auto >= 0.0
     assert 0.0 <= overlap_auto <= 1.0
+
+    stdout_zipf = _run_cli(
+        repo_root,
+        [
+            "--vocab",
+            "400",
+            "--K",
+            "24",
+            "--steps",
+            "3000",
+            "--seed",
+            "19",
+            "--pgen",
+            "zipf",
+            "--alpha",
+            "1.2",
+        ],
+    )
+    overlap_zipf = _parse_metric(stdout_zipf, "overlap_mass")
+    assert 0.0 <= overlap_zipf <= 1.0
