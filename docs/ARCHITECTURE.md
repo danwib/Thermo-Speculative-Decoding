@@ -113,6 +113,24 @@ r(y) ∝ p(y) - min{p(y), q(y)}
 Normalise by ``1 - Σ_y min{p(y), q(y)}``. This construction is always
 non-negative, unlike the earlier `p - α q` heuristic.
 
+## Bigram Targets (M1)
+
+- `build_vocab_from_corpus(path)` extracts a sorted character vocabulary from an
+  on-disk corpus. Newlines and whitespace remain as standard tokens so the
+  transition matrix stays faithful to the source.
+- `make_bigram_from_corpus(path, laplace)` counts adjacent character pairs,
+  applies Laplace smoothing (`+laplace` everywhere), and normalises each row to
+  obtain conditional probabilities `P(y | x)` alongside the matching `log P`.
+- `make_bigram_synthetic(V, seed, c)` samples a stationary unigram
+  `u ~ Dirichlet(1)` and, for every context, a row distribution from
+  `Dirichlet(1 + c * u)` to inject mild structure without an external corpus.
+- `row_logprobs(logP, prev_id)` returns the view consumed by the proposer and
+  verifier when conditioning on `x_{t-1}`.
+
+All helpers operate in `float64` and seed `numpy.random.default_rng` for
+deterministic experiments. The `(stoi, itos)` vocabulary metadata emitted by the
+corpus path keeps proposer and verifier token IDs aligned.
+
 ## Accept/Correct (L = 1)
 
 - The verifier receives a proposed token `x` and its ``log q(x)`` from the TSU.
