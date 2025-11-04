@@ -3,7 +3,7 @@
 
 from __future__ import annotations
 
-from typing import Tuple
+from typing import Optional, Tuple
 
 import numpy as np
 
@@ -47,7 +47,7 @@ def craft_psi_from_p(
     p: np.ndarray,
     k: int,
     tau: float = 1.0,
-    epsilon: float = 1e-6,
+    epsilon: Optional[float | str] = None,
 ) -> PsiTopK:
     """Construct a ψ payload aligned with the target distribution.
 
@@ -60,7 +60,8 @@ def craft_psi_from_p(
     tau:
         Temperature value copied into the payload.
     epsilon:
-        Floor mass assigned to out-of-set tokens.
+        Floor mass assigned to out-of-set tokens. Pass ``"auto"`` (default) to
+        distribute the true tail mass uniformly across the residual vocabulary.
 
     Returns
     -------
@@ -90,11 +91,25 @@ def craft_psi_from_p(
         raise ValueError("k must be between 1 and vocab_size inclusive.")
     if tau <= 0.0:
         raise ValueError("tau must be positive.")
-    if epsilon < 0.0:
-        raise ValueError("epsilon must be non-negative.")
 
     sorted_indices = np.argsort(-probs, kind="stable")
     topk_indices = sorted_indices[:k].astype(np.int32)
+
+    auto_epsilon = epsilon is None or (
+        isinstance(epsilon, str) and epsilon.lower() == "auto"
+    )
+    if auto_epsilon:
+        topk_mass = float(probs[topk_indices].sum())
+        tail_mass = max(0.0, 1.0 - topk_mass)
+        denom = max(1, vocab_size - k)
+        epsilon_value = 0.0 if denom == 1 else tail_mass / denom
+    else:
+        try:
+            epsilon_value = float(epsilon)  # type: ignore[assignment]
+        except (TypeError, ValueError) as exc:
+            raise ValueError("epsilon must be a float or 'auto'.") from exc
+        if epsilon_value < 0.0:
+            raise ValueError("epsilon must be non-negative.")
 
     scores = np.log(probs[topk_indices])
     scores = scores.astype(np.float32)
@@ -114,7 +129,7 @@ def craft_psi_from_p(
         scale=scale,
         zero_point=zero_point,
         tau=np.float16(tau),
-        epsilon=np.float16(epsilon),
+        epsilon=np.float16(epsilon_value),
         vocab_size=np.int32(vocab_size),
     )
 

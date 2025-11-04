@@ -7,6 +7,7 @@ import datetime as _dt
 import json
 import sys
 from pathlib import Path
+from typing import Optional, Union
 
 import numpy as np
 import typer
@@ -30,12 +31,26 @@ def main() -> None:
     """CLI bootstrap for M0 experiments."""
 
 
+def _parse_eps(eps_opt: Optional[str]) -> Optional[Union[float, str]]:
+    if eps_opt is None:
+        return "auto"
+    candidate = eps_opt.strip().lower()
+    if candidate == "auto":
+        return "auto"
+    try:
+        return float(candidate)
+    except ValueError as exc:  # pragma: no cover - defensive
+        raise typer.BadParameter("`--eps` must be a float or 'auto'") from exc
+
+
 @app.command()
 def run(
     vocab: int = typer.Option(1000, "--vocab", min=1, help="Vocabulary size."),
     k: int = typer.Option(64, "--K", min=1, help="Top-K payload size."),
     tau: float = typer.Option(1.0, "--tau", help="Proposer temperature."),
-    eps: float = typer.Option(1e-6, "--eps", help="Out-of-set floor mass."),
+    eps: Optional[str] = typer.Option(
+        "auto", "--eps", help="Out-of-set floor mass ('auto' to match tail)."
+    ),
     steps: int = typer.Option(100_000, "--steps", min=1, help="Number of samples."),
     seed: int = typer.Option(7, "--seed", help="Base seed for RNGs."),
 ) -> None:
@@ -44,11 +59,18 @@ def run(
     if k > vocab:
         raise typer.BadParameter("K must be <= vocab size.")
 
+    eps_val = _parse_eps(eps)
+    eps_request = "auto" if isinstance(eps_val, str) else float(eps_val)
+
     p, logp = make_p(vocab_size=vocab, seed=seed)
-    psi = craft_psi_from_p(p, k=k, tau=tau, epsilon=eps)
+    psi = craft_psi_from_p(p, k=k, tau=tau, epsilon=eps_val)
     psi_bytes = psi_size_bytes(psi)
 
     tsu = SimTSU()
+
+    topk_ids = np.argsort(-p, kind="stable")[:k]
+    topk_mass = float(p[topk_ids].sum())
+    epsilon_used = float(psi.epsilon)
 
     runs_root = Path("runs")
     run_id = _dt.datetime.utcnow().strftime("%Y%m%dT%H%M%S")
@@ -84,7 +106,8 @@ def run(
                 "psi_bytes": int(psi_bytes),
                 "K": int(k),
                 "tau": float(tau),
-                "eps": float(eps),
+                "eps_request": eps_request,
+                "eps_used": float(epsilon_used),
             }
             handle.write(json.dumps(row) + "\n")
 
@@ -96,6 +119,8 @@ def run(
     typer.echo(f"chi2_stat={chi2_stat:.4f}")
     typer.echo(f"p_value={p_value:.4f}")
     typer.echo(f"psi_bytes_mean={psi_bytes:.1f}")
+    typer.echo(f"topk_mass={topk_mass:.6f}")
+    typer.echo(f"eps_used={epsilon_used:.6g}")
 
 
 if __name__ == "__main__":

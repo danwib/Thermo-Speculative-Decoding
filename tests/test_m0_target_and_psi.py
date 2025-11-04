@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import numpy as np
+import pytest
 
 from tsd.psi import psi_size_bytes
 from tsd.targets.m0_categorical import craft_psi_from_p, make_p
@@ -34,3 +35,20 @@ def test_craft_psi_matches_topk_order_and_size() -> None:
 
     assert psi_size_bytes(psi) <= 1024
     assert int(psi.vocab_size) == vocab_size
+
+
+def test_eps_auto_matches_tail_mass() -> None:
+    """Auto epsilon should distribute tail mass uniformly."""
+
+    vocab_size = 1_000
+    k = 64
+    p, _ = make_p(vocab_size=vocab_size, seed=12345)
+    psi = craft_psi_from_p(p, k=k, tau=1.0, epsilon="auto")
+
+    topk_ids = np.argsort(-p, kind="stable")[:k]
+    topk_mass = float(p[topk_ids].sum())
+    tail_mass = max(0.0, 1.0 - topk_mass)
+    denom = max(1, vocab_size - k)
+    expected = 0.0 if denom == 1 else tail_mass / denom
+
+    assert float(psi.epsilon) == pytest.approx(expected, rel=1e-3, abs=1e-7)

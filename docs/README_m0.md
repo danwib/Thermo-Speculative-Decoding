@@ -27,8 +27,22 @@ unbiased samples and exposes lightweight telemetry for analysis.
 From the repository root (inside a virtual environment):
 
 ```bash
-python -m scripts.run_m0 run --steps 5000 --vocab 500 --K 32 --seed 11
+# auto tail-mass epsilon (recommended)
+python -m scripts.run_m0 run --vocab 1000 --K 64 --eps auto --steps 50000 --seed 7
+
+# fixed epsilon (advanced)
+python -m scripts.run_m0 run --vocab 1000 --K 64 --eps 1e-6 --steps 50000 --seed 7
 ```
+
+`--eps auto` distributes the true tail mass of `p` uniformly over the out-of-set
+tokens:
+
+```
+ε = (1 - Σ_{y∈topK(p)} p(y)) / max(V - K, 1)
+```
+
+This typically raises acceptance rates versus a tiny fixed `ε`, especially when
+the proposer already captures most of the target mass.
 
 Output looks like:
 
@@ -38,6 +52,8 @@ accept_rate=0.72
 chi2_stat=518.93
 p_value=0.33
 psi_bytes_mean=332.0
+topk_mass=0.98
+eps_used=2.1e-04
 ```
 
 Success criteria:
@@ -57,4 +73,3 @@ Success criteria:
   much larger value suggests quantisation parameters need tuning.
 - **Runs directory:** the CLI writes to `runs/<timestamp>/m0_metrics.jsonl`.
   Clean old runs before reusing seeds to avoid confusion.
-

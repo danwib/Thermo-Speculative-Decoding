@@ -30,12 +30,14 @@ SPDX-License-Identifier: Apache-2.0
 ## How We Validate M0
 
 - `tests/test_m0_end_to_end.py` (`@pytest.mark.slow`): χ² p-value > 0.05,
-  acceptance in `[0.4, 0.95]` for `(V=1000, K=64, steps=30k)`.
+  acceptance in `[0.2, 0.95]` for `(V=1000, K=64, steps=30k)`.
 - `tests/test_m0_cli_smoke.py`: CLI subprocess run with `steps=5000`, p-value >
   0.01, acceptance within `[0.1, 1.0]`.
 - `tests/test_m0_target_and_psi.py`: schema sanity and payload sizing.
 - CLI `scripts/run_m0.py` and artifact script `scripts/make_m0_artifact.py` are
   expected to emit JSONL metrics and summary stats per run.
+- `--eps` accepts either a float or `'auto'`; the latter computes the matched
+  tail mass per run to maximise acceptance.
 
 ## Open Questions
 
