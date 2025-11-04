@@ -44,6 +44,13 @@ SPDX-License-Identifier: Apache-2.0
 - `scripts/sweep_m0.py` runs `run_m0` in-process across multiple seeds and reports
   accept rate, overlap mass, and χ² p-values to gauge statistical stability.
 
+## M1 Unbiasedness Strategy
+
+- Synthetic bigram tests hold a fixed `prev_id`, craft ψ from `log p(· | x)`,
+  and run accept/correct to compare emitted histograms against the true
+  conditional. χ² p-values > 0.05 across most contexts signal unbiasedness even
+  in the contextual regime.
+
 ## Open Questions
 
 1. Finalize `thrml` adapter surface and fidelity tests.
