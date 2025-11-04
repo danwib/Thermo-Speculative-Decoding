@@ -68,3 +68,14 @@ analysis (acceptance traces, CE gap histograms, etc.).
 > - `|mean_accept - mean_overlap| < 0.03` in telemetry checks.
 > - ψ payload size ≤ 1 KB for `K ≤ 128`.
 > - Continuous integration remains green (lint, type, test).
+
+## Parameter Sweeps
+
+Use the sweep helpers to probe stability:
+
+- `python -m scripts.sweep_m1 --steps 20000 --seeds 7 11 13 17` summarises acceptance/overlap by seed.
+- `python -m scripts.sweep_m1_grid --steps 15000 --Ks 32 64 128 --taus 0.9 1.0 1.1 --seeds 7 11`
+  fixes a context and sweeps `(K, τ)` to understand how acceptance, overlap, and CE gap co-vary.
+
+The grid sweep prints a compact table and writes `runs/<timestamp>/m1_sweep.csv`.
+Acceptance should broadly follow overlap, while CE gap highlights how much room is left for proposer improvements.
