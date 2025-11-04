@@ -68,6 +68,11 @@ Success criteria:
 - Acceptance rate between roughly 0.2 and 0.9 (depends on `K`, `τ`, `ε`).
 - JSONL file populated with per-step telemetry for offline analysis.
 
+> **Success checklist**
+> - χ² `p_value > 0.05` across multiple seeds.
+> - `|accept_rate − overlap_mass| < 0.02`.
+> - `ψ` payload size ≤ 1 KB when `K ≤ 128`.
+
 ## Common Gotchas
 
 - **Always use returned `log q`:** the verifier must consume the exact TSU
