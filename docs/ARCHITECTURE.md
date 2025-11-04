@@ -136,6 +136,11 @@ the largest `K` transitions, embeds their log-probabilities into quantised score
 and relies on the same `F(ψ)` semantics for both TSU sampling and verifier
 correction.
 
+The downstream components remain identical to M0: `SimTSU` still invokes the
+reference `F(ψ)` sampler, the verifier runs `accept_correct_step`, and the
+residual distribution `p - min(p, q)` guarantees unbiasedness regardless of the
+context.
+
 ## Accept/Correct (L = 1)
 
 - The verifier receives a proposed token `x` and its ``log q(x)`` from the TSU.
