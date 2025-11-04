@@ -72,6 +72,17 @@ single normalisation pass compatible with simulator implementations.
   `PsiTopK` payload. The floor mass `ε` keeps residual probability consistent
   with `F(ψ)`, ensuring high acceptance rates in the smoke test.
 
+## Accept/Correct (L = 1)
+
+- The verifier receives a proposed token `x` and its ``log q(x)`` from the TSU.
+  The acceptance ratio is computed as ``α = min(1, exp(log p(x) - log q(x)))``
+  using log-space arithmetic for stability.
+- On acceptance (`u < α`), the proposed token is emitted directly.
+- On rejection, the residual distribution is defined as
+  ``r(y) ∝ p(y) - α q(y)``. We reconstruct ``q`` via `F(ψ)`, clip tiny
+  negatives induced by quantisation, renormalise, and sample with the shared RNG.
+  This preserves unbiasedness even when the proposer and target disagree.
+
 ## Integration with `thrml`
 
 The TSU abstraction intentionally decouples simulator logic from the Extropic
