@@ -7,13 +7,13 @@ from typing import Sequence
 
 import numpy as np
 
-from ..psi import PsiPayload
+from ..psi import PsiTopK
 
 
 class ProposerHead:
     """Maps context into ψ payloads."""
 
-    def emit(self, context: Sequence[int], *, rng: np.random.Generator) -> PsiPayload:
+    def emit(self, context: Sequence[int], *, rng: np.random.Generator) -> PsiTopK:
         """Produce ψ for the given context.
 
         Args:
@@ -28,4 +28,3 @@ class ProposerHead:
         """
 
         raise NotImplementedError("ProposerHead.emit will be implemented in M1.")
-

@@ -8,13 +8,13 @@ from typing import Protocol, Sequence
 
 import numpy as np
 
-from .psi import PsiPayload
+from .psi import PsiTopK
 
 
 class TSUAdapter(Protocol):
     """Common interface for TSU implementations."""
 
-    def sample(self, payload: PsiPayload, *, rng: np.random.Generator) -> "TSUResult":
+    def sample(self, payload: PsiTopK, *, rng: np.random.Generator) -> "TSUResult":
         """Draw samples from the TSU.
 
         Args:
@@ -40,7 +40,7 @@ class SimTSU:
 
     max_block_length: int = 1
 
-    def sample(self, payload: PsiPayload, *, rng: np.random.Generator) -> TSUResult:
+    def sample(self, payload: PsiTopK, *, rng: np.random.Generator) -> TSUResult:
         """Sample via the reference ψ sampler.
 
         Args:
@@ -55,4 +55,3 @@ class SimTSU:
         """
 
         raise NotImplementedError("SimTSU.sample will be implemented in M0.")
-

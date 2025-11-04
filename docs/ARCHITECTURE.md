@@ -36,6 +36,32 @@ The system targets milestone-driven development:
 - `tsd.train`: Future modules for distillation and acceptance-aware fine-tuning.
 - `tsd.telemetry`: Aggregates metrics, logging, and JSONL output.
 
+## ψ v1 Schema
+
+The Top-K ψ payload is represented by `PsiTopK` with the following fields:
+
+- `ids (int32[K])`: Token identifiers ordered by descending proposer score.
+- `scores_q8 (int8[K])`: Symmetric int8 quantised scores aligned with `ids`.
+- `scale (float32)` and `zero_point (int8)`: Quantisation metadata used during
+  de-quantisation.
+- `tau (float16)`: Temperature applied to the de-quantised scores.
+- `epsilon (float16)`: Floor probability allocated to tokens outside the Top-K
+  set.
+- `vocab_size (int32)`: Cardinality of the target vocabulary.
+
+The induced categorical distribution `F(ψ)` is defined as:
+
+```
+Z = Σ_k exp(s_k / τ) + (V - K) * ε
+p(i) = exp(s_i / τ) / Z       if i ∈ ids
+p(o) = ε / Z                  otherwise
+```
+
+where `s_k` are the de-quantised scores, `τ` is the temperature, `ε` is the
+floor probability, `K` is the payload size, and `V` is the vocabulary size. The
+software reference computes `log q` in float64 for numerical stability and uses a
+single normalisation pass compatible with simulator implementations.
+
 ## Integration with `thrml`
 
 The TSU abstraction intentionally decouples simulator logic from the Extropic
@@ -68,4 +94,3 @@ A per-run CSV summary aggregates mean/variance statistics for quick inspection.
 
 All tests should seed RNGs for reproducibility and avoid reliance on GPU-specific
 determinism.
-
