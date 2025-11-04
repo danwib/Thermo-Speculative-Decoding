@@ -44,6 +44,22 @@ pip install -e ".[dev]"
 The initial milestones focus on validating ψ semantics and unbiased sampling via
 pytest. CLI entry points under `scripts/` will provide reproducible experiments.
 
+### Run M0
+
+```bash
+python -m scripts.run_m0 run --steps 5000 --vocab 500 --K 32 --seed 11
+```
+
+Example output:
+
+```
+metrics_path=runs/20240405T120000/m0_metrics.jsonl
+accept_rate=0.7214
+chi2_stat=518.9321
+p_value=0.3278
+psi_bytes_mean=332.0
+```
+
 ## Roadmap
 
 - [ ] Implement ψ schema and TSU simulator parity tests (M0).
@@ -52,4 +68,3 @@ pytest. CLI entry points under `scripts/` will provide reproducible experiments.
 - [ ] Extend to block drafting (L = 2–4) and acceptance-aware training.
 
 See `docs/ARCHITECTURE.md` for detailed design notes and open questions.
-
