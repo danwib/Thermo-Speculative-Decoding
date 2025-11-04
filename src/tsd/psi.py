@@ -4,7 +4,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Dict
+from typing import Dict, Tuple
 
 import numpy as np
 
@@ -13,6 +13,7 @@ __all__ = [
     "PsiTopK",
     "dequantize_scores",
     "logq_for_ids",
+    "logq_full",
     "psi_size_bytes",
 ]
 
@@ -99,6 +100,34 @@ def dequantize_scores(psi: PsiTopK) -> np.ndarray:
     return (scores - zero_point) * scale
 
 
+def _logq_components(psi: PsiTopK) -> Tuple[np.ndarray, float, float, float, int]:
+    scores = dequantize_scores(psi).astype(np.float64)
+    tau = float(np.float64(psi.tau))
+    epsilon = float(np.float64(psi.epsilon))
+    vocab_size = int(psi.vocab_size)
+    k = psi.ids.shape[0]
+
+    scaled_scores = scores / tau
+    max_scaled = np.max(scaled_scores) if scaled_scores.size else 0.0
+    sum_exp = np.sum(np.exp(scaled_scores - max_scaled), dtype=np.float64)
+    log_topk_sum = max_scaled + np.log(sum_exp)
+
+    tail_count = vocab_size - k
+    tail_mass = tail_count * epsilon
+    if tail_count > 0 and tail_mass < 0:
+        raise ValueError("Tail mass cannot be negative.")
+
+    if tail_mass > 0:
+        log_tail_mass = np.log(tail_mass)
+        log_z = np.logaddexp(log_topk_sum, log_tail_mass)
+        log_tail_prob = np.log(epsilon) - log_z
+    else:
+        log_z = log_topk_sum
+        log_tail_prob = -np.inf
+
+    return scaled_scores, log_z, log_tail_prob, epsilon, vocab_size
+
+
 def logq_for_ids(psi: PsiTopK, query_ids: np.ndarray) -> np.ndarray:
     """Compute ``log q`` for requested token identifiers.
 
@@ -124,30 +153,7 @@ def logq_for_ids(psi: PsiTopK, query_ids: np.ndarray) -> np.ndarray:
     if np.any((query < 0) | (query >= int(psi.vocab_size))):
         raise ValueError("query_ids must lie within the vocabulary range.")
 
-    scores = dequantize_scores(psi).astype(np.float64)
-    tau = float(np.float64(psi.tau))
-    epsilon = float(np.float64(psi.epsilon))
-    vocab_size = int(psi.vocab_size)
-    k = psi.ids.shape[0]
-
-    scaled_scores = scores / tau
-    max_scaled = np.max(scaled_scores) if scaled_scores.size else 0.0
-    sum_exp = np.sum(np.exp(scaled_scores - max_scaled), dtype=np.float64)
-    log_topk_sum = max_scaled + np.log(sum_exp)
-
-    tail_count = vocab_size - k
-    tail_mass = tail_count * epsilon
-    if tail_count > 0 and tail_mass < 0:
-        raise ValueError("Tail mass cannot be negative.")
-
-    if tail_mass > 0:
-        log_tail_mass = np.log(tail_mass)
-        log_z = np.logaddexp(log_topk_sum, log_tail_mass)
-        log_tail_prob = np.log(epsilon) - log_z
-    else:
-        log_z = log_topk_sum
-        log_tail_prob = -np.inf
-
+    scaled_scores, log_z, log_tail_prob, _, _ = _logq_components(psi)
     id_map: Dict[int, int] = {int(token_id): idx for idx, token_id in enumerate(psi.ids.tolist())}
 
     log_probs = np.full(query.shape, log_tail_prob, dtype=np.float64)
@@ -156,6 +162,15 @@ def logq_for_ids(psi: PsiTopK, query_ids: np.ndarray) -> np.ndarray:
         if match is not None:
             log_probs[position] = scaled_scores[match] - log_z
 
+    return log_probs
+
+
+def logq_full(psi: PsiTopK) -> np.ndarray:
+    """Return log ``q`` values for the full vocabulary."""
+
+    scaled_scores, log_z, log_tail_prob, _, vocab_size = _logq_components(psi)
+    log_probs = np.full(vocab_size, log_tail_prob, dtype=np.float64)
+    log_probs[psi.ids] = scaled_scores - log_z
     return log_probs
 
 

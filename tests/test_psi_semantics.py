@@ -8,7 +8,7 @@ from typing import Tuple
 import numpy as np
 import pytest
 
-from tsd.psi import PsiTopK, dequantize_scores, logq_for_ids
+from tsd.psi import PsiTopK, dequantize_scores, logq_for_ids, logq_full
 
 
 VOCAB_SIZE = 16
@@ -87,3 +87,12 @@ def test_quant_roundtrip() -> None:
     psi, original_scores = build_payload(tau=1.0, epsilon=1e-3)
     reconstructed = dequantize_scores(psi)
     assert np.allclose(reconstructed, original_scores, atol=float(SCALE))
+
+
+def test_logq_full_matches_logq_for_ids() -> None:
+    """logq_full should agree with logq_for_ids over the full vocabulary."""
+
+    psi, _ = build_payload(tau=0.9, epsilon=2e-3)
+    logq_all = logq_full(psi)
+    logq_enum = logq_for_ids(psi, np.arange(VOCAB_SIZE, dtype=np.int32))
+    assert np.allclose(logq_all, logq_enum)

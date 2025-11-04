@@ -7,7 +7,7 @@ from typing import Tuple
 
 import numpy as np
 
-from ..psi import PsiTopK, logq_for_ids
+from ..psi import PsiTopK, logq_full
 
 __all__ = ["accept_correct_step"]
 
@@ -67,20 +67,19 @@ def accept_correct_step(
     if rng.random() < alpha:
         return int(proposed_token), True
 
-    all_ids = np.arange(vocab_size, dtype=np.int32)
-    logq_all = logq_for_ids(psi, all_ids)
+    logq_all = logq_full(psi)
     q_all = np.exp(logq_all)
     p_all = np.exp(normalized_logp)
 
-    residual = p_all - alpha * q_all
+    overlap = np.minimum(p_all, q_all)
+    residual = p_all - overlap
     residual = np.clip(residual, 0.0, None)
     residual_mass = float(np.sum(residual, dtype=np.float64))
 
-    if residual_mass <= 0.0 or not np.isfinite(residual_mass):
-        residual = p_all.copy()
-        residual_mass = 1.0
+    if residual_mass <= 1e-15 or not np.isfinite(residual_mass):
+        final_token = int(rng.choice(vocab_size, p=p_all))
+        return final_token, False
 
     residual /= residual_mass
-
-    final_token = rng.choice(all_ids, p=residual)
-    return int(final_token), False
+    final_token = int(rng.choice(vocab_size, p=residual))
+    return final_token, False

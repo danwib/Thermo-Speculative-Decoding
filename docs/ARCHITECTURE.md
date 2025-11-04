@@ -101,18 +101,17 @@ References:
 Acceptance ratio:
 
 ```
-α(x) = min(1, exp(log p(x) - log q(x)))
+α(x*) = min(1, p(x*) / q(x*))
 ```
 
 Residual distribution (after rejection):
 
 ```
-r(y) ∝ p(y) - α q(y)
+r(y) ∝ p(y) - min{p(y), q(y)}
 ```
 
-The verifier recomputes `q(y)` via `F(ψ)` but always uses the TSU-returned
-`log q(x)` in `α`. Residuals are clipped to non-negative values before
-renormalisation to absorb quantisation noise.
+Normalise by ``1 - Σ_y min{p(y), q(y)}``. This construction is always
+non-negative, unlike the earlier `p - α q` heuristic.
 
 ## Accept/Correct (L = 1)
 
@@ -120,10 +119,9 @@ renormalisation to absorb quantisation noise.
   The acceptance ratio is computed as ``α = min(1, exp(log p(x) - log q(x)))``
   using log-space arithmetic for stability.
 - On acceptance (`u < α`), the proposed token is emitted directly.
-- On rejection, the residual distribution is defined as
-  ``r(y) ∝ p(y) - α q(y)``. We reconstruct ``q`` via `F(ψ)`, clip tiny
-  negatives induced by quantisation, renormalise, and sample with the shared RNG.
-  This preserves unbiasedness even when the proposer and target disagree.
+- On rejection, we sample from
+  ``r(y) ∝ p(y) - min{p(y), q(y)}``, normalised by the remaining mass ``1 - Σ_y min{p(y), q(y)}``.
+  Reconstruct ``q`` via `F(ψ)` and use the TSU-returned ``log q(x*)`` in the acceptance ratio.
 
 ## Integration with `thrml`
 
