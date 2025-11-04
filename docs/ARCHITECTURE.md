@@ -62,6 +62,13 @@ floor probability, `K` is the payload size, and `V` is the vocabulary size. The
 software reference computes `log q` in float64 for numerical stability and uses a
 single normalisation pass compatible with simulator implementations.
 
+### Numerical considerations
+
+- De-quantised scores are accumulated in `float64` during normalisation to avoid
+  catastrophic cancellation for sharp distributions.
+- Log-space arithmetic (`logq_for_ids`, `accept_correct_step`) prevents underflow
+  when forming acceptance ratios or residuals.
+
 ## M0 Target Construction
 
 - `make_p(vocab_size, seed)` samples a fixed categorical target by drawing from a
@@ -71,6 +78,41 @@ single normalisation pass compatible with simulator implementations.
   order), encodes their log probabilities into quantised scores, and emits a
   `PsiTopK` payload. The floor mass `ε` keeps residual probability consistent
   with `F(ψ)`, ensuring high acceptance rates in the smoke test.
+
+References:
+- `src/tsd/psi.py` – ψ schema, `logq_for_ids`, and payload sizing.
+- `src/tsd/tsu_iface.py` – `SimTSU.sample_categorical` (reference TSU).
+- `src/tsd/verifier/accept_correct.py` – single-token accept/correct.
+- `src/tsd/targets/m0_categorical.py` – target and ψ crafting utilities.
+- `scripts/run_m0.py` – CLI entry point writing telemetry.
+
+```
+  +---------------+     +-----------------+     +---------------------+
+  | make_p / ψ    | --> | SimTSU (F(ψ))    | --> | accept_correct_step |
+  | crafting      |     | sample + log q  |     | accept / residual   |
+  +---------------+     +-----------------+     +---------------------+
+          ^                       |                          |
+          |                       v                          v
+        params                ψ telemetry              telemetry JSONL
+```
+
+### Accept/Correct (L = 1)
+
+Acceptance ratio:
+
+```
+α(x) = min(1, exp(log p(x) - log q(x)))
+```
+
+Residual distribution (after rejection):
+
+```
+r(y) ∝ p(y) - α q(y)
+```
+
+The verifier recomputes `q(y)` via `F(ψ)` but always uses the TSU-returned
+`log q(x)` in `α`. Residuals are clipped to non-negative values before
+renormalisation to absorb quantisation noise.
 
 ## Accept/Correct (L = 1)
 
