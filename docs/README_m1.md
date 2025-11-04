@@ -62,3 +62,9 @@ At completion, `summary.json` captures aggregated statistics:
 
 CLI output echoes the summary for quick inspection. Use the JSONL for deeper
 analysis (acceptance traces, CE gap histograms, etc.).
+
+> **Success checklist**
+> - Fixed-context χ² tests pass (≥3/4 contexts with p-value > 0.05).
+> - `|mean_accept - mean_overlap| < 0.03` in telemetry checks.
+> - ψ payload size ≤ 1 KB for `K ≤ 128`.
+> - Continuous integration remains green (lint, type, test).
