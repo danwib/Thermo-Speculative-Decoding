@@ -62,6 +62,16 @@ floor probability, `K` is the payload size, and `V` is the vocabulary size. The
 software reference computes `log q` in float64 for numerical stability and uses a
 single normalisation pass compatible with simulator implementations.
 
+## M0 Target Construction
+
+- `make_p(vocab_size, seed)` samples a fixed categorical target by drawing from a
+  Dirichlet(1) prior using PCG64 for reproducibility. It returns both `p` and
+  `log p` for downstream evaluation.
+- `craft_psi_from_p(p, K, tau, epsilon)` selects the Top-K entries of `p` (stable
+  order), encodes their log probabilities into quantised scores, and emits a
+  `PsiTopK` payload. The floor mass `ε` keeps residual probability consistent
+  with `F(ψ)`, ensuring high acceptance rates in the smoke test.
+
 ## Integration with `thrml`
 
 The TSU abstraction intentionally decouples simulator logic from the Extropic
