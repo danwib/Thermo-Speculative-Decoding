@@ -13,6 +13,12 @@ SPDX-License-Identifier: Apache-2.0
   - [ ] Extend telemetry (JSONL + CSV).
   - [ ] Provide CLI scripts for reproducible experiments.
 
+## Notes
+
+- Probability handshake: the verifier must consume the `log q` emitted by the TSU
+  (simulated or hardware) to maintain unbiased acceptance decisions. Do not
+  recompute proposer probabilities inside the verifier.
+
 ## Open Questions
 
 1. Finalize `thrml` adapter surface and fidelity tests.
@@ -20,4 +26,3 @@ SPDX-License-Identifier: Apache-2.0
 3. Define acceptance-aware fine-tuning objectives and telemetry dashboards.
 
 Update this file as decisions land or new risks emerge.
-
