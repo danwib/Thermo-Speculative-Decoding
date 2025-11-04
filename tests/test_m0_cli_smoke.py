@@ -75,8 +75,10 @@ def test_m0_cli_smoke(tmp_path: Path) -> None:
     p_value_auto = _parse_metric(stdout_auto, "p_value")
     accept_auto = _parse_metric(stdout_auto, "accept_rate")
     eps_used_auto = _parse_metric(stdout_auto, "eps_used")
+    overlap_auto = _parse_metric(stdout_auto, "overlap_mass")
 
     assert 0.0 <= p_value_auto <= 1.0
     assert 0.1 < accept_auto < 1.0
     assert accept_auto >= accept_numeric
     assert eps_used_auto >= 0.0
+    assert 0.0 <= overlap_auto <= 1.0

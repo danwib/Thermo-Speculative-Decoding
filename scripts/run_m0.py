@@ -17,7 +17,7 @@ SRC = ROOT / "src"
 if str(SRC) not in sys.path:
     sys.path.insert(0, str(SRC))
 
-from tsd.psi import psi_size_bytes
+from tsd.psi import logq_full, psi_size_bytes
 from tsd.targets import craft_psi_from_p, make_p
 from tsd.telemetry.metrics import chi2_test_counts
 from tsd.tsu_iface import SimTSU
@@ -68,6 +68,11 @@ def run(
 
     tsu = SimTSU()
 
+    logq_all = logq_full(psi)
+    q = np.exp(logq_all)
+    overlap_mass = float(np.minimum(p, q).sum())
+    residual_mass = float(max(0.0, 1.0 - overlap_mass))
+
     topk_ids = np.argsort(-p, kind="stable")[:k]
     topk_mass = float(p[topk_ids].sum())
     epsilon_used = float(psi.epsilon)
@@ -108,6 +113,8 @@ def run(
                 "tau": float(tau),
                 "eps_request": eps_request,
                 "eps_used": float(epsilon_used),
+                "overlap_mass": overlap_mass,
+                "residual_mass": residual_mass,
             }
             handle.write(json.dumps(row) + "\n")
 
@@ -121,6 +128,11 @@ def run(
     typer.echo(f"psi_bytes_mean={psi_bytes:.1f}")
     typer.echo(f"topk_mass={topk_mass:.6f}")
     typer.echo(f"eps_used={epsilon_used:.6g}")
+    typer.echo(f"overlap_mass={overlap_mass:.6f}")
+    typer.echo(f"residual_mass={residual_mass:.6f}")
+    typer.echo(
+        f"accept_minus_overlap={abs(accept_rate - overlap_mass):.6f}"
+    )
 
 
 if __name__ == "__main__":
