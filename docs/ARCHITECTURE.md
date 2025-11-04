@@ -131,6 +131,11 @@ All helpers operate in `float64` and seed `numpy.random.default_rng` for
 deterministic experiments. The `(stoi, itos)` vocabulary metadata emitted by the
 corpus path keeps proposer and verifier token IDs aligned.
 
+Per-context ψ payloads reuse the M0 Top-K schema: `craft_psi_from_row` selects
+the largest `K` transitions, embeds their log-probabilities into quantised scores,
+and relies on the same `F(ψ)` semantics for both TSU sampling and verifier
+correction.
+
 ## Accept/Correct (L = 1)
 
 - The verifier receives a proposed token `x` and its ``log q(x)`` from the TSU.

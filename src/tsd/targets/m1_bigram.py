@@ -4,15 +4,18 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Dict, List, Tuple
+from typing import Dict, List, Tuple, Union
 
 import numpy as np
+
+from ..psi import PsiTopK
 
 __all__ = [
     "build_vocab_from_corpus",
     "make_bigram_from_corpus",
     "make_bigram_synthetic",
     "row_logprobs",
+    "craft_psi_from_row",
 ]
 
 
@@ -144,3 +147,87 @@ def row_logprobs(logP: np.ndarray, prev_id: int) -> np.ndarray:
     if not (0 <= prev_id < logP.shape[0]):
         raise ValueError("prev_id out of range for provided logP.")
     return logP[prev_id]
+
+
+def craft_psi_from_row(
+    logp_row: np.ndarray,
+    K: int,
+    tau: float = 1.0,
+    epsilon: Union[float, str, None] = "auto",
+) -> PsiTopK:
+    """Craft a ψ payload from a single bigram log-probability row.
+
+    Parameters
+    ----------
+    logp_row:
+        Array of log probabilities ``log p(y | x)`` for a fixed context.
+    K:
+        Number of Top-K entries retained in the payload.
+    tau:
+        Temperature stored in the ψ payload.
+    epsilon:
+        Tail floor probability. Pass ``"auto"`` or ``None`` to match the true
+        residual mass uniformly.
+
+    Returns
+    -------
+    PsiTopK
+        Quantised ψ payload aligned with the Top-K ordering of ``p``.
+    """
+
+    if tau <= 0.0:
+        raise ValueError("tau must be positive.")
+
+    logp = np.asarray(logp_row, dtype=np.float64)
+    if logp.ndim != 1:
+        raise ValueError("logp_row must be a 1D array.")
+
+    vocab_size = logp.shape[0]
+    if vocab_size == 0:
+        raise ValueError("logp_row must contain at least one entry.")
+
+    max_logp = np.max(logp)
+    shifted = logp - max_logp
+    log_sum = max_logp + np.log(np.sum(np.exp(shifted), dtype=np.float64))
+    normalized_logp = logp - log_sum
+    p_row = np.exp(normalized_logp)
+
+    if K <= 0 or K > vocab_size:
+        raise ValueError("K must be between 1 and vocab_size inclusive.")
+
+    topk_indices = np.argsort(-p_row, kind="stable")[:K].astype(np.int32)
+
+    eps_value: float
+    if epsilon is None or (isinstance(epsilon, str) and epsilon.lower() == "auto"):
+        topk_mass = float(p_row[topk_indices].sum())
+        tail_mass = max(0.0, 1.0 - topk_mass)
+        tail_count = max(0, vocab_size - K)
+        eps_value = 0.0 if tail_count == 0 else tail_mass / tail_count
+    else:
+        try:
+            eps_value = float(epsilon)
+        except (TypeError, ValueError) as exc:  # pragma: no cover - validation guard
+            raise ValueError("epsilon must be a float or 'auto'.") from exc
+        if eps_value < 0.0:
+            raise ValueError("epsilon must be non-negative.")
+
+    scores = normalized_logp[topk_indices].astype(np.float32)
+
+    max_abs = float(np.max(np.abs(scores))) if scores.size else 0.0
+    scale = np.float32(max(max_abs / 127.0, 1e-6))
+    zero_point = np.int8(0)
+    quantised = np.clip(
+        np.round(scores / scale),
+        -128,
+        127,
+    ).astype(np.int8)
+
+    return PsiTopK(
+        ids=topk_indices,
+        scores_q8=quantised,
+        scale=scale,
+        zero_point=zero_point,
+        tau=np.float16(tau),
+        epsilon=np.float16(eps_value),
+        vocab_size=np.int32(vocab_size),
+    )
