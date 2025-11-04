@@ -1,0 +1,65 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "tsd"
+version = "0.1.0"
+description = "Thermo-Speculative Decoding prototype scaffolding."
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "Apache-2.0" }
+authors = [
+  { name = "TSD Team" }
+]
+classifiers = [
+  "License :: OSI Approved :: Apache Software License",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.11",
+  "Topic :: Scientific/Engineering :: Artificial Intelligence"
+]
+dependencies = [
+  "numpy>=1.26",
+  "scipy>=1.11",
+  "typer>=0.12",
+  "rich>=13.0",
+  "pydantic>=2.0",
+  "orjson>=3.9",
+]
+
+[project.optional-dependencies]
+torch = [
+  "torch>=2.3"
+]
+dev = [
+  "black>=24.3",
+  "ruff>=0.4.0",
+  "mypy>=1.8",
+  "pytest>=8.0",
+  "pytest-cov>=4.1"
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.black]
+line-length = 88
+target-version = ["py311"]
+
+[tool.ruff]
+line-length = 88
+target-version = "py311"
+select = ["E", "F", "I", "UP", "B", "S", "A"]
+ignore = ["S101"]
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+plugins = []
+namespace_packages = true
+explicit_package_bases = true
+
+[tool.pytest.ini_options]
+addopts = "--strict-markers --disable-warnings"
+testpaths = ["tests"]
+
