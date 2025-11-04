@@ -62,4 +62,6 @@ explicit_package_bases = true
 [tool.pytest.ini_options]
 addopts = "--strict-markers --disable-warnings"
 testpaths = ["tests"]
-
+markers = [
+  "slow: marks tests as slow-running"
+]
