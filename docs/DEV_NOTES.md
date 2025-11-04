@@ -44,6 +44,9 @@ SPDX-License-Identifier: Apache-2.0
 - `scripts/sweep_m0.py` runs `run_m0` in-process across multiple seeds and reports
   accept rate, overlap mass, and χ² p-values to gauge statistical stability.
 
+- `scripts/sweep_m1.py` mirrors the sweep for contextual runs, printing acceptance,
+  mean overlap, and mean CE gap across seeds (synthetic or corpus-backed).
+
 ## M1 Unbiasedness Strategy
 
 - Synthetic bigram tests hold a fixed `prev_id`, craft ψ from `log p(· | x)`,
