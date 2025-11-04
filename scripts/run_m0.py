@@ -7,7 +7,7 @@ import datetime as _dt
 import json
 import sys
 from pathlib import Path
-from typing import Optional, Union
+from typing import Dict, Optional, Union
 
 import numpy as np
 import typer
@@ -61,7 +61,8 @@ def run(
     ),
     steps: int = typer.Option(100_000, "--steps", min=1, help="Number of samples."),
     seed: int = typer.Option(7, "--seed", help="Base seed for RNGs."),
-) -> None:
+    return_metrics: bool = False,
+) -> Optional[Dict[str, Union[float, str]]]:
     """Run the M0 smoke test with deterministic settings."""
 
     if k > vocab:
@@ -135,18 +136,29 @@ def run(
     chi2_stat, p_value = chi2_test_counts(emitted_counts, p)
     accept_rate = accept_count / steps
 
-    typer.echo(f"metrics_path={jsonl_path}")
-    typer.echo(f"accept_rate={accept_rate:.4f}")
-    typer.echo(f"chi2_stat={chi2_stat:.4f}")
-    typer.echo(f"p_value={p_value:.4f}")
-    typer.echo(f"psi_bytes_mean={psi_bytes:.1f}")
-    typer.echo(f"topk_mass={topk_mass:.6f}")
-    typer.echo(f"eps_used={epsilon_used:.6g}")
-    typer.echo(f"overlap_mass={overlap_mass:.6f}")
-    typer.echo(f"residual_mass={residual_mass:.6f}")
-    typer.echo(
-        f"accept_minus_overlap={abs(accept_rate - overlap_mass):.6f}"
-    )
+    metrics: Dict[str, Union[float, str]] = {
+        "metrics_path": str(jsonl_path),
+        "accept_rate": accept_rate,
+        "chi2_stat": chi2_stat,
+        "p_value": p_value,
+        "psi_bytes_mean": float(psi_bytes),
+        "topk_mass": topk_mass,
+        "eps_used": epsilon_used,
+        "overlap_mass": overlap_mass,
+        "residual_mass": residual_mass,
+        "accept_minus_overlap": abs(accept_rate - overlap_mass),
+    }
+
+    if return_metrics:
+        return metrics
+
+    for key, value in metrics.items():
+        if key == "metrics_path":
+            typer.echo(f"{key}={value}")
+        else:
+            typer.echo(f"{key}={value:.6f}")
+
+    return None
 
 
 if __name__ == "__main__":

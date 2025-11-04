@@ -39,6 +39,11 @@ SPDX-License-Identifier: Apache-2.0
 - `--eps` accepts either a float or `'auto'`; the latter computes the matched
   tail mass per run to maximise acceptance.
 
+## Stability Sweep
+
+- `scripts/sweep_m0.py` runs `run_m0` in-process across multiple seeds and reports
+  accept rate, overlap mass, and χ² p-values to gauge statistical stability.
+
 ## Open Questions
 
 1. Finalize `thrml` adapter surface and fidelity tests.
