@@ -19,6 +19,14 @@ SPDX-License-Identifier: Apache-2.0
   (simulated or hardware) to maintain unbiased acceptance decisions. Do not
   recompute proposer probabilities inside the verifier.
 
+## Golden-ψ Test Plan & Probability Handshake
+
+- `tests/test_golden_psi_contract.py` validates that the simulated TSU returns
+  `log q` values exactly matching `F(ψ)` and that empirical samples align with
+  theoretical probabilities.
+- Any TSU implementation (including `thrml`) must pass the same contract to
+  guarantee verifier correctness.
+
 ## Open Questions
 
 1. Finalize `thrml` adapter surface and fidelity tests.

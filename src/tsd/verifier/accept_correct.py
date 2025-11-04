@@ -40,7 +40,8 @@ def accept_correct_step(
     proposed_token:
         Token sampled by the TSU.
     proposed_logq:
-        ``log q`` corresponding to the proposed token (returned by the TSU).
+        ``log q`` corresponding to the proposed token (**must** be the value
+        returned by the TSU; do not recompute from ``ψ`` externally).
     rng:
         Random number generator for acceptance decisions and residual sampling.
 
@@ -58,6 +59,8 @@ def accept_correct_step(
 
     normalized_logp, _ = _normalise_log_probs(logp)
     logp_token = normalized_logp[proposed_token]
+    # Use the log q provided by the TSU. Recomputing it here risks diverging
+    # from the hardware/software sampler contract.
     delta = logp_token - proposed_logq
     alpha = 1.0 if delta >= 0.0 else float(np.exp(delta))
 
